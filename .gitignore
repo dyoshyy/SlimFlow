@@ -213,3 +213,5 @@ datasets/
 slurm_log/
 run.sh
 sbatch_single.sh
+
+ckpts/
