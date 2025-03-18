@@ -13,12 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""All functions and modules related to model definition.
-"""
+"""All functions and modules related to model definition."""
 
-import torch
-import numpy as np
 import logging
+
+import numpy as np
+import torch
 
 _MODELS = {}
 
@@ -32,10 +32,11 @@ def register_model(cls=None, *, name=None):
         else:
             local_name = name
         if local_name in _MODELS:
-            raise ValueError(f'Already registered model with name: {local_name}')
+            raise ValueError(f"Already registered model with name: {local_name}")
         _MODELS[local_name] = cls
         return cls
-    #print(cls, name)
+
+    # print(cls, name)
     if cls is None:
         return _register
     else:
@@ -43,7 +44,7 @@ def register_model(cls=None, *, name=None):
 
 
 def get_model(name):
-    #print(_MODELS)
+    print(_MODELS)
     return _MODELS[name]
 
 
@@ -55,7 +56,12 @@ def get_sigmas(config):
         sigmas: a jax numpy arrary of noise levels
     """
     sigmas = np.exp(
-        np.linspace(np.log(config.model.sigma_max), np.log(config.model.sigma_min), config.model.num_scales))
+        np.linspace(
+            np.log(config.model.sigma_max),
+            np.log(config.model.sigma_min),
+            config.model.num_scales,
+        )
+    )
 
     return sigmas
 
@@ -68,20 +74,20 @@ def get_ddpm_params(config):
     beta_end = config.model.beta_max / config.model.num_scales
     betas = np.linspace(beta_start, beta_end, num_diffusion_timesteps, dtype=np.float64)
 
-    alphas = 1. - betas
+    alphas = 1.0 - betas
     alphas_cumprod = np.cumprod(alphas, axis=0)
     sqrt_alphas_cumprod = np.sqrt(alphas_cumprod)
-    sqrt_1m_alphas_cumprod = np.sqrt(1. - alphas_cumprod)
+    sqrt_1m_alphas_cumprod = np.sqrt(1.0 - alphas_cumprod)
 
     return {
-        'betas': betas,
-        'alphas': alphas,
-        'alphas_cumprod': alphas_cumprod,
-        'sqrt_alphas_cumprod': sqrt_alphas_cumprod,
-        'sqrt_1m_alphas_cumprod': sqrt_1m_alphas_cumprod,
-        'beta_min': beta_start * (num_diffusion_timesteps - 1),
-        'beta_max': beta_end * (num_diffusion_timesteps - 1),
-        'num_diffusion_timesteps': num_diffusion_timesteps
+        "betas": betas,
+        "alphas": alphas,
+        "alphas_cumprod": alphas_cumprod,
+        "sqrt_alphas_cumprod": sqrt_alphas_cumprod,
+        "sqrt_1m_alphas_cumprod": sqrt_1m_alphas_cumprod,
+        "beta_min": beta_start * (num_diffusion_timesteps - 1),
+        "beta_max": beta_end * (num_diffusion_timesteps - 1),
+        "num_diffusion_timesteps": num_diffusion_timesteps,
     }
 
 
@@ -91,36 +97,50 @@ def create_model(config):
     score_model = get_model(model_name)(config)
     score_model = score_model.to(config.device)
 
-    pytorch_total_grad_params = sum(p.numel() for p in score_model.parameters() if p.requires_grad)
-    logging.info(f'total number of trainable parameters in the Score Model: {pytorch_total_grad_params}')
+    pytorch_total_grad_params = sum(
+        p.numel() for p in score_model.parameters() if p.requires_grad
+    )
+    logging.info(
+        f"total number of trainable parameters in the Score Model: {pytorch_total_grad_params}"
+    )
     pytorch_total_params = sum(p.numel() for p in score_model.parameters())
-    logging.info(f'total number of parameters in the Score Model: {pytorch_total_params}')
+    logging.info(
+        f"total number of parameters in the Score Model: {pytorch_total_params}"
+    )
 
     if config.world_size > 1:
         logging.info(f"using {config.world_size} GPUs!")
     score_model = torch.nn.DataParallel(score_model)
     return score_model
 
+
 ## UNet model creater
 def create_model_edm(config):
     from .edm_networks import DhariwalUNet
+
     unet = DhariwalUNet(
-                    img_resolution=config.data.image_size, 
-                    in_channels=config.data.num_channels, 
-                    out_channels=config.data.num_channels, 
-                    label_dim=config.data.num_classes, # 1000 for ImageNet
-                    model_channels=config.model.nf, 
-                    channel_mult=config.model.ch_mult, 
-                    num_blocks=config.model.num_res_blocks, 
-                    attn_resolutions=config.model.attn_resolutions, 
-                    dropout=0.13, 
-                    )
-    pytorch_total_grad_params = sum(p.numel() for p in unet.parameters() if p.requires_grad)
-    logging.info(f'total number of trainable parameters in the Score Model: {pytorch_total_grad_params}')
+        img_resolution=config.data.image_size,
+        in_channels=config.data.num_channels,
+        out_channels=config.data.num_channels,
+        label_dim=config.data.num_classes,  # 1000 for ImageNet
+        model_channels=config.model.nf,
+        channel_mult=config.model.ch_mult,
+        num_blocks=config.model.num_res_blocks,
+        attn_resolutions=config.model.attn_resolutions,
+        dropout=0.13,
+    )
+    pytorch_total_grad_params = sum(
+        p.numel() for p in unet.parameters() if p.requires_grad
+    )
+    logging.info(
+        f"total number of trainable parameters in the Score Model: {pytorch_total_grad_params}"
+    )
     pytorch_total_params = sum(p.numel() for p in unet.parameters())
-    logging.info(f'total number of parameters in the Score Model: {pytorch_total_params}')
+    logging.info(
+        f"total number of parameters in the Score Model: {pytorch_total_params}"
+    )
     return unet
-    
+
 
 def get_model_fn(model, train=False):
     """Create a function to give the output of the score-based model.
@@ -163,6 +183,7 @@ def from_flattened_numpy(x, shape):
     """Form a torch tensor with the given `shape` from a flattened numpy array `x`."""
     return torch.from_numpy(x.reshape(shape))
 
+
 def load_mismatch_state_dict(model, old_state_dict):
     """load weight from checkpoint with mismatch size"""
     new_state_dict = model.state_dict()
@@ -184,5 +205,7 @@ def load_mismatch_state_dict(model, old_state_dict):
             print(f"{key} is not found in the old model.")
             not_count += 1
         count += 1
-    logging.info(f'skiped {mis_count} keys; {not_count} not found keys; {count} total keys')
+    logging.info(
+        f"skiped {mis_count} keys; {not_count} not found keys; {count} total keys"
+    )
     return new_state_dict

@@ -1,17 +1,15 @@
+import logging
 import os
-join = os.path.join
-from typing import Iterator
-import torch
-from torch import Tensor, nn
+import random
+import shutil
+import subprocess
+
 import matplotlib.pyplot as plt
 import numpy as np
-from torchvision.utils import save_image, make_grid
-import subprocess
-import shutil
 import torch
-import os
-import logging
-import random
+from torchvision.utils import make_grid, save_image
+
+join = os.path.join
 
 
 def seed_everywhere(seed):
@@ -29,24 +27,25 @@ def seed_everywhere(seed):
 def restore_checkpoint(ckpt_dir, state, device):
     if not os.path.exists(ckpt_dir):
         os.makedirs(ckpt_dir, exist_ok=True)
-        logging.warning(f"No checkpoint found at {ckpt_dir}. "
-                        f"Returned the same state as input")
+        logging.warning(
+            f"No checkpoint found at {ckpt_dir}. Returned the same state as input"
+        )
         return state
     else:
         loaded_state = torch.load(ckpt_dir, map_location=device)
-        state['optimizer'].load_state_dict(loaded_state['optimizer'])
-        state['model'].load_state_dict(loaded_state['model'], strict=False)
-        state['ema'].load_state_dict(loaded_state['ema'])
-        state['step'] = loaded_state['step']
+        state["optimizer"].load_state_dict(loaded_state["optimizer"])
+        state["model"].load_state_dict(loaded_state["model"], strict=False)
+        state["ema"].load_state_dict(loaded_state["ema"])
+        state["step"] = loaded_state["step"]
         return state
 
 
 def save_checkpoint(ckpt_dir, state):
     saved_state = {
-        'optimizer': state['optimizer'].state_dict(),
-        'model': state['model'].state_dict(),
-        'ema': state['ema'].state_dict(),
-        'step': state['step']
+        "optimizer": state["optimizer"].state_dict(),
+        "model": state["model"].state_dict(),
+        "ema": state["ema"].state_dict(),
+        "step": state["step"],
     }
     torch.save(saved_state, ckpt_dir)
 
@@ -59,8 +58,10 @@ def mean_flat(tensor):
 
 
 def save_image_batch(batch, img_size, sample_path, log_name="examples"):
-        sample_grid = make_grid(batch, nrow=int(np.ceil(np.sqrt(batch.shape[0]))), padding=img_size // 16)
-        save_image(sample_grid, join(sample_path, log_name))
+    sample_grid = make_grid(
+        batch, nrow=int(np.ceil(np.sqrt(batch.shape[0]))), padding=img_size // 16
+    )
+    save_image(sample_grid, join(sample_path, log_name))
 
 
 def update_curve(values, label, x_label, work_path, run_id):
@@ -69,7 +70,7 @@ def update_curve(values, label, x_label, work_path, run_id):
     ax.set_xlabel(x_label)
     ax.set_ylabel(label)
     ax.legend()
-    plt.savefig(f'{work_path}/{label}_curve_{run_id}.png', dpi=600)
+    plt.savefig(f"{work_path}/{label}_curve_{run_id}.png", dpi=600)
     plt.close()
 
 
